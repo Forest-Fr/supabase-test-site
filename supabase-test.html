@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Supabase Test Form</title>
+</head>
+<body>
+  <h2>写入 messages 表</h2>
+  <form id="msgForm">
+    <input type="text" id="name" placeholder="Name"><br><br>
+    <textarea id="content" placeholder="Content"></textarea><br><br>
+    <button type="submit">Submit</button>
+  </form>
+
+  <script>
+    const SUPABASE_URL = 'https://wrgfrjwwtxyonbqxxnvp.supabase.co'; // 替换为你的项目 URL
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZ2Zyand3dHh5b25icXh4bnZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2Nzk3ODYsImV4cCI6MjA1OTI1NTc4Nn0.ffm6g20BG36c8ROghk95rtl3dBO-vXM7-_xVMrQdfPg'; // 替换为你的 anon 公钥
+
+    document.getElementById('msgForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const name = document.getElementById('name').value;
+      const content = document.getElementById('content').value;
+
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify({ name, content })
+      });
+
+      const result = await res.json();
+      alert('写入结果：' + JSON.stringify(result));
+    });
+  </script>
+</body>
+</html>
