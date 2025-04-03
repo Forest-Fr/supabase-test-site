@@ -6,31 +6,73 @@
 </head>
 <body>
   <h2>写入 messages 表</h2>
-  <form id="msgForm">
+
+  <button id="loginBtn">GitHub 登录</button>
+  <p id="loginStatus">尚未登录</p>
+
+  <form id="msgForm" style="display:none;">
     <input type="text" id="name" placeholder="Name"><br><br>
     <textarea id="content" placeholder="Content"></textarea><br><br>
     <button type="submit">Submit</button>
   </form>
 
-  <script>
-    const SUPABASE_URL = 'https://wrgfrjwwtxyonbqxxnvp.supabase.co'; // 替换为你的项目 URL
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZ2Zyand3dHh5b25icXh4bnZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2Nzk3ODYsImV4cCI6MjA1OTI1NTc4Nn0.ffm6g20BG36c8ROghk95rtl3dBO-vXM7-_xVMrQdfPg'; // 替换为你的 anon 公钥
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js'
 
-    document.getElementById('msgForm').addEventListener('submit', async (e) => {
+    const SUPABASE_URL = 'https://wrgfrjwwtxyonbqxxnvp.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndyZ2Zyand3dHh5b25icXh4bnZwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2Nzk3ODYsImV4cCI6MjA1OTI1NTc4Nn0.ffm6g20BG36c8ROghk95rtl3dBO-vXM7-_xVMrQdfPg';
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const loginBtn = document.getElementById('loginBtn');
+    const msgForm = document.getElementById('msgForm');
+    const loginStatus = document.getElementById('loginStatus');
+
+    let currentUser = null;
+
+    // 尝试自动获取登录用户
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      currentUser = user;
+      loginStatus.textContent = `已登录: ${user.email || user.id}`;
+      msgForm.style.display = 'block';
+    }
+
+    // 登录按钮
+    loginBtn.addEventListener('click', async () => {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'github'
+      });
+      if (error) alert('登录出错: ' + error.message);
+    });
+
+    // 表单提交
+    msgForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
       const name = document.getElementById('name').value;
       const content = document.getElementById('content').value;
+
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+
+      if (!token) {
+        alert("未登录，不能提交");
+        return;
+      }
 
       const res = await fetch(`${SUPABASE_URL}/rest/v1/messages`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'apikey': SUPABASE_KEY,
-          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Authorization': `Bearer ${token}`,
           'Prefer': 'return=representation'
         },
-        body: JSON.stringify({ name, content })
+        body: JSON.stringify({
+          name,
+          content,
+          user_id: currentUser.id // 可用于后续权限控制
+        })
       });
 
       const result = await res.json();
